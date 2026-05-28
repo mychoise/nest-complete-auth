@@ -1,9 +1,14 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from 'src/drizzle/drizzle.module';
 import * as schema from '../drizzle/schema/schema';
-import { JwtPayload, register } from './interface/auth.interface';
+import { JwtPayload, login, register } from './interface/auth.interface';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -47,6 +52,49 @@ export class AuthService {
         user_id: user.id,
       })
       .returning();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...payload } = user;
+    return {
+      token: {
+        accessToken,
+        refreshToken,
+      },
+      user: payload,
+    };
+  }
+
+  async login(data: login) {
+    const [user] = await this.db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, data.email));
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const verifyPassword = await this.comparePassword(
+      data.password,
+      user.password,
+    );
+
+    if (!verifyPassword) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const { accessToken, refreshToken } = this.generateToken(user);
+
+    const hashedRefreshToken = await this.hashRefreshToken(refreshToken);
+
+    await this.db
+      .update(schema.tokens)
+      .set({
+        refresh_token: hashedRefreshToken,
+        refresh_token_expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        is_revoked: false,
+      })
+      .where(eq(schema.tokens.user_id, user.email));
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...payload } = user;
     return {
       token: {
@@ -95,5 +143,12 @@ export class AuthService {
   private hashRefreshToken(refreshToken: string): Promise<string> {
     const salt = parseInt(this.configService.get<string>('REFRESH_SALT')!);
     return bcrypt.hash(refreshToken, salt);
+  }
+
+  private comparePassword(
+    passsword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
+    return bcrypt.compare(passsword, hashedPassword);
   }
 }

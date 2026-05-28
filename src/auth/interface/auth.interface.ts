@@ -10,3 +10,9 @@ export type JwtPayload = {
   email: string;
   role: string;
 };
+
+export interface login {
+  email: string;
+  password: string;
+  role?: 'admin' | 'user';
+}
