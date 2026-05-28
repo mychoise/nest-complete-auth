@@ -8,11 +8,12 @@ import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from 'src/drizzle/drizzle.module';
 import * as schema from '../drizzle/schema/schema';
-import { JwtPayload, login, register } from './interface/auth.interface';
+import { JwtPayload, login } from './interface/auth.interface';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../drizzle/schema/schema';
+import { registerDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +23,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(data: register) {
+  async register(data: registerDto) {
     const [existingUser] = await this.db
       .select()
       .from(schema.users)
@@ -31,7 +32,7 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const hashedPassword = await this.hashPassword(data.passsword);
+    const hashedPassword = await this.hashPassword(data.password);
     const [user] = await this.db
       .insert(schema.users)
       .values({
