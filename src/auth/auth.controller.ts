@@ -75,12 +75,14 @@ export class AuthController {
   @Roles('admin')
   protected(@User() user: any) {
     return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       user,
     };
   }
   @Get('refresh')
   @UseGuards(JwtRefrshGuard)
   async refresh(@User() user: any) {
-    return await this.authService.refresh(user.id, user.refreshToken);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+    return await this.authService.refresh(user.sub, user.refreshToken);
   }
 }
