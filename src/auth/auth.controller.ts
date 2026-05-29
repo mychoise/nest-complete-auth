@@ -1,15 +1,22 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { registerDto } from './dto/register.dto';
 import type { Response } from 'express';
 import { loginDto } from './dto/login.dto';
+import { JwtAccessGuard } from './guard/access.guard';
+import { User } from './decorator/user.decorator';
+import { JwtRefrshGuard } from './guard/refresh.guard';
+import { RolesGuard } from './guard/roles.guard';
+import { Roles } from './decorator/roles.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -52,6 +59,23 @@ export class AuthController {
     return {
       user,
       accessToken: token.accessToken,
+    };
+  }
+
+  @Get()
+  getHello() {
+    return {
+      msg: 'hi',
+    };
+  }
+
+  @Get('protected')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAccessGuard, RolesGuard)
+  @Roles('admin')
+  protected(@User() user: any) {
+    return {
+      user,
     };
   }
 }

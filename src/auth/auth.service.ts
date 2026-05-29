@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -65,6 +66,7 @@ export class AuthService {
   }
 
   async login(data: login) {
+    console.log('data is', data);
     const [user] = await this.db
       .select()
       .from(schema.users)
@@ -93,7 +95,7 @@ export class AuthService {
         refresh_token_expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         is_revoked: false,
       })
-      .where(eq(schema.tokens.user_id, user.email));
+      .where(eq(schema.tokens.user_id, user.id));
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...payload } = user;
@@ -104,6 +106,21 @@ export class AuthService {
       },
       user: payload,
     };
+  }
+
+  async findById(id: string) {
+    const [user] = await this.db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, id));
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async refresh(userId:string,refreshToke:string) {
+    const [token] =
   }
 
   private async hashPassword(passsword: string): Promise<string> {
@@ -151,5 +168,12 @@ export class AuthService {
     hashedPassword: string,
   ): Promise<boolean> {
     return bcrypt.compare(passsword, hashedPassword);
+  }
+
+  private compareRefreshToken(
+    refreshToken: string,
+    hashedRefreshToken: string,
+  ): Promise<boolean> {
+    return bcrypt.compare(refreshToken, hashedRefreshToken);
   }
 }

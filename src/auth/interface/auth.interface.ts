@@ -11,6 +11,8 @@ export type JwtPayload = {
   role: string;
 };
 
+export type role = 'admin' | 'user';
+
 export interface login {
   email: string;
   password: string;
