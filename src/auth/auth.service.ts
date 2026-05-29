@@ -119,8 +119,41 @@ export class AuthService {
     return user;
   }
 
-  async refresh(userId:string,refreshToke:string) {
-    const [token] =
+  async refresh(userId: string, refreshToken: string) {
+    const [token] = await this.db
+      .select()
+      .from(schema.tokens)
+      .where(eq(schema.tokens.user_id, userId));
+
+    if (!token) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const isValid = await this.compareRefreshToken(
+      refreshToken,
+      token.refresh_token,
+    );
+
+    if (
+      !isValid ||
+      token.is_revoked ||
+      token.refresh_token_expiry < new Date()
+    ) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const [user] = await this.db
+      .select({
+        id: schema.users.id,
+        email: schema.users.email,
+        role: schema.users.role,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId));
+
+    // Just issue a new access token, nothing else
+    const accessToken = this.generateAccessToken(user);
+    return { access_token: accessToken };
   }
 
   private async hashPassword(passsword: string): Promise<string> {
@@ -134,7 +167,11 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private generateAccessToken(user: User): string {
+  private generateAccessToken(user: {
+    id: string;
+    email: string;
+    role: 'admin' | 'user';
+  }): string {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -146,7 +183,11 @@ export class AuthService {
     });
   }
 
-  private generateRefreshToken(user: User): string {
+  private generateRefreshToken(user: {
+    id: string;
+    email: string;
+    role: 'admin' | 'user';
+  }): string {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,

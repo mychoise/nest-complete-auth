@@ -78,4 +78,9 @@ export class AuthController {
       user,
     };
   }
+  @Get('refresh')
+  @UseGuards(JwtRefrshGuard)
+  async refresh(@User() user: any) {
+    return await this.authService.refresh(user.id, user.refreshToken);
+  }
 }
