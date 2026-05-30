@@ -8,6 +8,7 @@ import { JwtStrategy } from './strategy/accessToken.strategy';
 import { JwtAccessGuard } from './guard/access.guard';
 import { JwtRefrshGuard } from './guard/refresh.guard';
 import { JwtRefreshStrategy } from './strategy/refreshToken.strategy';
+import { LoginGuard } from 'src/throttler/guards/login.guard';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { JwtRefreshStrategy } from './strategy/refreshToken.strategy';
     JwtStrategy,
     JwtAccessGuard,
     JwtRefrshGuard,
+    LoginGuard,
     JwtRefreshStrategy,
   ],
 })

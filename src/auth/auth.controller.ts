@@ -17,12 +17,15 @@ import { User } from './decorator/user.decorator';
 import { JwtRefrshGuard } from './guard/refresh.guard';
 import { RolesGuard } from './guard/roles.guard';
 import { Roles } from './decorator/roles.decorator';
+import { LoginGuard } from 'src/throttler/guards/login.guard';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { ttl: 60, limit: 5 } })
   @HttpCode(HttpStatus.CREATED)
   async register(
     @Body() data: registerDto,
@@ -43,6 +46,8 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(LoginGuard)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() data: loginDto,
